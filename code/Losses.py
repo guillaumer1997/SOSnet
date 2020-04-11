@@ -22,41 +22,6 @@ def SOS_reg(anchor, positive):
     return torch.mean(SOS_temp)
 
 
-def SOS_reg3(anchor, positive, k=50):
-    '''
-    anchor_diagnol = anchor * (1 - torch.eye(anchor.size(0), anchor.size(1)))
-    dist_matrix_a = distance_matrix_vector(anchor,anchor_diagnol)
-    print("dist_matrix_a:", dist_matrix_a)
-    positive_diagnol = positive * (1 - torch.eye(positive.size(0), positive.size(1)))
-    dist_matrix_b = distance_matrix_vector(positive,positive_diagnol)
-    print("dist_matrix_b:", dist_matrix_b)
-    SOS_temp = torch.sqrt(torch.sum(torch.pow(dist_matrix_a-dist_matrix_b, 2)))
-    exit(0)
-    return torch.mean(SOS_temp)
-    '''
-    eps = 1e-8
-    dist_matrix_a = distance_matrix_vector(anchor,anchor)+ eps
-    dist_matrix_b = distance_matrix_vector(positive,positive)+ eps
-    '''
-    k_max = percentile(dist_matrix_b, k)
-    print("k_max:", k_max)
-    mask = dist_matrix_b.ge(k_max)
-    print("mask:", mask)
-    dist_matrix_a = dist_matrix_a*mask
-    print("dist_matrix_a:", dist_matrix_a)
-    dist_matrix_b = dist_matrix_b*mask
-    print("dist_matrix_b:", dist_matrix_b)
-    '''
-
-    SOS_temp = torch.sqrt(torch.sum(torch.pow(dist_matrix_a-dist_matrix_b, 2)))
-    print("SOS_temp:", SOS_temp)
-    print("SOS_temp.shape:", SOS_temp.shape)
-    result = np.mean(SOS_temp)
-    print("result:", result)
-    exit(0)
-    return torch.mean(SOS_temp)
-
-
 def SOS_reg2(anchor, positive):
 
     pdist = nn.PairwiseDistance(p=2)
@@ -80,6 +45,23 @@ def SOS_reg2(anchor, positive):
     print("result:", result)
     '''
     return result
+
+
+def SOS_reg3(anchor, positive, k=50, eps=1e-8):
+    dist_matrix_a = distance_matrix_vector(anchor,anchor)+eps
+    dist_matrix_b = distance_matrix_vector(positive,positive)+eps
+
+    k_max = percentile(dist_matrix_b, k)
+    print("k_max:", k_max)
+    mask = dist_matrix_b.ge(k_max)
+    print("mask:", mask)
+    dist_matrix_a = dist_matrix_a*mask
+    print("dist_matrix_a:", dist_matrix_a)
+    dist_matrix_b = dist_matrix_b*mask
+    print("dist_matrix_b:", dist_matrix_b)
+
+    SOS_temp = torch.sqrt(torch.sum(torch.pow(dist_matrix_a-dist_matrix_b, 2)))
+    return torch.mean(SOS_temp)
 
 
 def distance_vectors_pairwise(anchor, positive, negative = None):

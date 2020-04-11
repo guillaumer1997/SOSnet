@@ -35,7 +35,7 @@ import cv2
 import copy
 import PIL
 from EvalMetrics import ErrorRateAt95Recall
-from Losses import loss_HardNet, loss_random_sampling, loss_L2Net, global_orthogonal_regularization, SOS_reg, SOS_reg2, triplet_margin_loss, triplet_margin_loss_gor, RSOS
+from Losses import loss_HardNet, loss_random_sampling, loss_L2Net, global_orthogonal_regularization, SOS_reg, SOS_reg2, SOS_reg3, triplet_margin_loss, triplet_margin_loss_gor, RSOS
 from W1BS import w1bs_extract_descs_and_save
 from Utils import L2Norm, cv2_scale, np_reshape
 from Utils import str2bool
@@ -452,7 +452,7 @@ def train(train_loader, model, optimizer, epoch, logger, load_triplets  = False)
 
         if args.SOS:
             #reg_term = SOS_reg2(out_a, out_p)
-            reg_term = SOS_reg(out_a, out_p)
+            reg_term = SOS_reg3(out_a, out_p)
             if(torch.max(reg_term) > 0):
                 loss += args.alpha * reg_term
             #loss += args.alpha * RSOS(out_a, out_p, out_n, margin=args.margin)
