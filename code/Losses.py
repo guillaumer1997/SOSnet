@@ -13,7 +13,17 @@ def distance_matrix_vector(anchor, positive):
     return torch.sqrt((d1_sq.repeat(1, positive.size(0)) + torch.t(d2_sq.repeat(1, anchor.size(0)))
                       - 2.0 * torch.bmm(anchor.unsqueeze(0), torch.t(positive).unsqueeze(0)).squeeze(0))+eps)
 
+
 def SOS_reg(anchor, positive):
+    eps = 1e-8
+    dist_matrix_a = distance_matrix_vector(anchor,anchor)+eps
+    dist_matrix_b = distance_matrix_vector(positive,positive)+eps
+    SOS_temp = torch.sqrt(torch.sum(torch.pow(dist_matrix_a-dist_matrix_b, 2)))
+    return torch.mean(SOS_temp)
+
+
+def SOS_reg3(anchor, positive, k=50):
+    '''
     anchor_diagnol = anchor * (1 - torch.eye(anchor.size(0), anchor.size(1)))
     dist_matrix_a = distance_matrix_vector(anchor,anchor_diagnol)
     print("dist_matrix_a:", dist_matrix_a)
@@ -21,6 +31,28 @@ def SOS_reg(anchor, positive):
     dist_matrix_b = distance_matrix_vector(positive,positive_diagnol)
     print("dist_matrix_b:", dist_matrix_b)
     SOS_temp = torch.sqrt(torch.sum(torch.pow(dist_matrix_a-dist_matrix_b, 2)))
+    exit(0)
+    return torch.mean(SOS_temp)
+    '''
+    eps = 1e-8
+    dist_matrix_a = distance_matrix_vector(anchor,anchor)+ eps
+    dist_matrix_b = distance_matrix_vector(positive,positive)+ eps
+    '''
+    k_max = percentile(dist_matrix_b, k)
+    print("k_max:", k_max)
+    mask = dist_matrix_b.ge(k_max)
+    print("mask:", mask)
+    dist_matrix_a = dist_matrix_a*mask
+    print("dist_matrix_a:", dist_matrix_a)
+    dist_matrix_b = dist_matrix_b*mask
+    print("dist_matrix_b:", dist_matrix_b)
+    '''
+
+    SOS_temp = torch.sqrt(torch.sum(torch.pow(dist_matrix_a-dist_matrix_b, 2)))
+    print("SOS_temp:", SOS_temp)
+    print("SOS_temp.shape:", SOS_temp.shape)
+    result = np.mean(SOS_temp)
+    print("result:", result)
     exit(0)
     return torch.mean(SOS_temp)
 
