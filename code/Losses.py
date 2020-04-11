@@ -3,6 +3,7 @@ import torch.nn as nn
 import sys
 import numpy as np
 
+
 def distance_matrix_vector(anchor, positive):
     """Given batch of anchor descriptors and positive descriptors calculate distance matrix"""
 
@@ -31,8 +32,6 @@ def SOS_reg2(anchor, positive):
     dist = a_dist + p_dist - 2*z_dist
     result = torch.mean(z_dist)
     print("result:", result)
-
-
     '''
     reg_sum = 0
     p_sum = 0
@@ -50,10 +49,17 @@ def SOS_reg2(anchor, positive):
 def SOS_reg3(anchor, positive, k=50, eps=1e-8):
     dist_matrix_a = distance_matrix_vector(anchor,anchor)+eps
     dist_matrix_b = distance_matrix_vector(positive,positive)+eps
-
+    '''
+    dist = Normal(dist_matrix_b)
+    mask = torch.ones(dist_matrix_b.shape)
+    print("mask:", mask)
+    k_max_indices = torch.topk(dist_matrix_b, k=k, dim=1)
+    print("k_max_indices:", k_max_indices)
+    mask.scatter_(2, k_max_indices, 0.)
+    print("mask:", mask)
+    '''
     k_max = percentile(dist_matrix_b, k)
-    print("k_max:", k_max)
-    mask = dist_matrix_b.ge(k_max)
+    mask = dist_matrix_b.lt(k_max)
     print("mask:", mask)
     dist_matrix_a = dist_matrix_a*mask
     print("dist_matrix_a:", dist_matrix_a)
@@ -239,6 +245,12 @@ def pairwise_distance(x1, x2, p=2, eps=1e-6):
     return torch.pow(out, 1. / p)
 
 
+'''
+spezold
+/
+torch_percentile.py
+https://gist.github.com/spezold/42a451682422beb42bc43ad0c0967a30
+'''
 def percentile(t, q):
     """
     Return the ``q``-th percentile of the flattened input tensor's data.
@@ -292,6 +304,12 @@ def RSOS(anchor, positive, negative, margin=1.0, p=2, eps=1e-6, swap=False, k=50
     return rsos
 
 
+'''
+spongezhang
+/
+hardnet
+https://github.com/spongezhang/hardnet
+'''
 def triplet_margin_loss(anchor, positive, negative, margin=1.0, p=2, eps=1e-6, swap=False):
     assert anchor.size() == positive.size(), "Input sizes between positive and negative must be equal."
     assert anchor.size() == negative.size(), "Input sizes between anchor and negative must be equal."
@@ -313,6 +331,12 @@ def triplet_margin_loss(anchor, positive, negative, margin=1.0, p=2, eps=1e-6, s
     return loss
 
 
+'''
+spongezhang
+/
+hardnet
+https://github.com/spongezhang/hardnet
+'''
 def triplet_margin_loss_gor(anchor, positive, negative, beta = 1.0, margin=1.0, p=2, eps=1e-6, swap=False):
     assert anchor.size() == positive.size(), "Input sizes between positive and negative must be equal."
     assert anchor.size() == negative.size(), "Input sizes between anchor and negative must be equal."
