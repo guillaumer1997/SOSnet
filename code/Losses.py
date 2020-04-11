@@ -26,14 +26,16 @@ def SOS_reg(anchor, positive):
 
 
 def SOS_reg2(anchor, positive):
-    '''
-    pdist = nn.PairwiseDistance(p=1)
+
+    pdist = nn.PairwiseDistance(p=2)
     a_dist = pdist(anchor, anchor)
     p_dist = pdist(positive, positive)
-
-    print("output:", output)
-    result = torch.mean(torch.sqrt(output))
+    z_dist = pdist(anchor, positive)
+    dist = a_dist + p_dist - 2*z_dist
+    result = torch.mean(z_dist)
     print("result:", result)
+
+
     '''
     reg_sum = 0
     p_sum = 0
@@ -44,8 +46,7 @@ def SOS_reg2(anchor, positive):
 
     result = torch.mean(torch.sqrt(reg_sum))
     print("result:", result)
-
-    exit(0)
+    '''
     return result
 
 
