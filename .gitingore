@@ -1,0 +1,4 @@
+*.pyc
+*.bmp
+*/data
+code/data
