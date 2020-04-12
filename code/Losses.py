@@ -46,7 +46,30 @@ def SOS_reg2(anchor, positive):
     return result
 
 
-def SOS_reg3(anchor, positive, k=10, eps=1e-8):
+def SOS_reg3(anchor, positive, k=50, eps=1e-8):
+    dist_matrix_a = distance_matrix_vector(anchor,anchor)+eps
+    dist_matrix_b = distance_matrix_vector(positive,positive)+eps
+    '''
+    dist = Normal(dist_matrix_b)
+    mask = torch.ones(dist_matrix_b.shape)
+    print("mask:", mask)
+    k_max_indices = torch.topk(dist_matrix_b, k=k, dim=1)
+    print("k_max_indices:", k_max_indices)
+    mask.scatter_(2, k_max_indices, 0.)
+    print("mask:", mask)
+    '''
+    k_max = percentile(dist_matrix_b, k)
+    mask = dist_matrix_b.lt(k_max)
+    print("mask:", mask)
+    dist_matrix_a = dist_matrix_a*mask.int().float()
+    print("dist_matrix_a:", dist_matrix_a)
+    dist_matrix_b = dist_matrix_b*mask.int().float()
+    print("dist_matrix_b:", dist_matrix_b)
+
+    SOS_temp = torch.sqrt(torch.sum(torch.pow(dist_matrix_a-dist_matrix_b, 2)))
+    return torch.mean(SOS_temp)
+    
+def SOS_reg4(anchor, positive, k=10, eps=1e-8):
     dist_matrix_a = distance_matrix_vector(anchor,anchor)+eps
     dist_matrix_b = distance_matrix_vector(positive,positive)+eps
     '''

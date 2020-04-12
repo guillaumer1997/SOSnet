@@ -451,9 +451,11 @@ def train(train_loader, model, optimizer, epoch, logger, load_triplets  = False)
                             loss_type = args.loss)
 
         if args.SOS:
-            #reg_term = SOS_reg2(out_a, out_p)
+            #reg_term = SOS_reg(out_a, out_p)
             reg_term = SOS_reg3(out_a, out_p)
-            if reg_term > 0:
+            #reg_term = SOS_reg3(out_a, out_p)
+            #reg_term = SOS_reg4(out_a, out_p)
+            if not torch.isnan(reg_term) and reg_term > 0:
                 loss += args.alpha * reg_term
                 #loss += args.alpha * RSOS(out_a, out_p, out_n, margin=args.margin)
 
