@@ -453,9 +453,9 @@ def train(train_loader, model, optimizer, epoch, logger, load_triplets  = False)
         if args.SOS:
             #reg_term = SOS_reg2(out_a, out_p)
             reg_term = SOS_reg3(out_a, out_p)
-            if(torch.max(reg_term) > 0):
+            if reg_term > 0:
                 loss += args.alpha * reg_term
-            #loss += args.alpha * RSOS(out_a, out_p, out_n, margin=args.margin)
+                #loss += args.alpha * RSOS(out_a, out_p, out_n, margin=args.margin)
 
         '''
         if args.decor:
@@ -522,7 +522,7 @@ def test(test_loader, model, epoch, logger, logger_test_name):
     print('\33[91mTest set: Accuracy(FPR95): {:.8f}\n\33[0m'.format(fpr95))
     #va_writer.add_scalar("fpr95", fpr95, global_step=epoch)
     va_writer.add_scalar("fpr95", fpr95, global_step=epoch)
-    f=open("fpr95.log","a")
+    f=open("FPR95.log","a")
     np.savetxt(f, [epoch, fpr95], delimiter=',') 
     f.close()
 

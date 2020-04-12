@@ -46,7 +46,7 @@ def SOS_reg2(anchor, positive):
     return result
 
 
-def SOS_reg3(anchor, positive, k=50, eps=1e-8):
+def SOS_reg3(anchor, positive, k=10, eps=1e-8):
     dist_matrix_a = distance_matrix_vector(anchor,anchor)+eps
     dist_matrix_b = distance_matrix_vector(positive,positive)+eps
     '''
@@ -58,15 +58,24 @@ def SOS_reg3(anchor, positive, k=50, eps=1e-8):
     mask.scatter_(2, k_max_indices, 0.)
     print("mask:", mask)
     '''
+    '''
     k_max = percentile(dist_matrix_b, k)
     mask = dist_matrix_b.lt(k_max)
     print("mask:", mask)
-    dist_matrix_a = dist_matrix_a*mask
-    print("dist_matrix_a:", dist_matrix_a)
-    dist_matrix_b = dist_matrix_b*mask
-    print("dist_matrix_b:", dist_matrix_b)
-
+    '''
+    mask = torch.ones((dist_matrix_b.shape), dtype=int, device=torch.device('cuda'))
+    dist_matrix_b[torch.isnan(dist_matrix_b)] = 0
+    k = int( float(dist_matrix_b.size(0)) * (float(k)/float(100)) )
+    top_k = torch.topk(dist_matrix_b, k)
+    mask[top_k.indices] = 0
+    #print("\n torch.max(dist_matrix_a)", torch.max(dist_matrix_a) )
+    dist_matrix_a = dist_matrix_a* mask.int().float()
+    #print("\n torch.max(dist_matrix_a)", torch.max(dist_matrix_a) )
+    #print("\n torch.max(dist_matrix_b)", torch.max(dist_matrix_b) )
+    dist_matrix_b = dist_matrix_b* mask.int().float()
+    #print("\n torch.max(dist_matrix_b)", torch.max(dist_matrix_b) )
     SOS_temp = torch.sqrt(torch.sum(torch.pow(dist_matrix_a-dist_matrix_b, 2)))
+
     return torch.mean(SOS_temp)
 
 
