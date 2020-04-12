@@ -30,7 +30,8 @@ def SOS_reg2(anchor, positive):
     p_dist = pdist(positive, positive)
     z_dist = pdist(anchor, positive)
     dist = a_dist + p_dist - 2*z_dist
-    result = torch.mean(z_dist)
+    SOS_temp = torch.sqrt(torch.sum(dist))
+    result = torch.mean(SOS_temp)
     print("result:", result)
     '''
     reg_sum = 0

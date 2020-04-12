@@ -452,12 +452,15 @@ def train(train_loader, model, optimizer, epoch, logger, load_triplets  = False)
 
         if args.SOS:
             #reg_term = SOS_reg(out_a, out_p)
-            reg_term = SOS_reg3(out_a, out_p)
+            reg_term = SOS_reg2(out_a, out_p)
             #reg_term = SOS_reg3(out_a, out_p)
             #reg_term = SOS_reg4(out_a, out_p)
             if not torch.isnan(reg_term) and reg_term > 0:
                 loss += args.alpha * reg_term
                 #loss += args.alpha * RSOS(out_a, out_p, out_n, margin=args.margin)
+                f=open("regularization.log","a")
+                np.savetxt(f, [epoch, reg_term], delimiter=',') 
+                f.close()
 
         '''
         if args.decor:
@@ -523,7 +526,7 @@ def test(test_loader, model, epoch, logger, logger_test_name):
     fpr95 = ErrorRateAt95Recall(labels, 1.0 / (distances + 1e-8))
     print('\33[91mTest set: Accuracy(FPR95): {:.8f}\n\33[0m'.format(fpr95))
     #va_writer.add_scalar("fpr95", fpr95, global_step=epoch)
-    va_writer.add_scalar("fpr95", fpr95, global_step=epoch)
+    tr_writer.add_scalar("fpr95", fpr95, global_step=epoch)
     f=open("FPR95.log","a")
     np.savetxt(f, [epoch, fpr95], delimiter=',') 
     f.close()
