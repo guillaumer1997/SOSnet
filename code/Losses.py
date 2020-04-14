@@ -15,92 +15,20 @@ def distance_matrix_vector(anchor, positive):
                       - 2.0 * torch.bmm(anchor.unsqueeze(0), torch.t(positive).unsqueeze(0)).squeeze(0))+eps)
 
 
-def SOS_reg(anchor, positive):
-    eps = 1e-8
+
+def SOS_reg(anchor, positive, KNN=True, k=50, eps=1e-8):
     dist_matrix_a = distance_matrix_vector(anchor,anchor)+eps
     dist_matrix_b = distance_matrix_vector(positive,positive)+eps
-    SOS_temp = torch.sqrt(torch.sum(torch.pow(dist_matrix_a-dist_matrix_b, 2)))
-    return torch.mean(SOS_temp)
-
-
-def SOS_reg2(anchor, positive):
-
-    pdist = nn.PairwiseDistance(p=2)
-    a_dist = pdist(anchor, anchor)
-    p_dist = pdist(positive, positive)
-    z_dist = pdist(anchor, positive)
-    dist = a_dist + p_dist - 2*z_dist
-    SOS_temp = torch.sqrt(torch.sum(dist))
-    result = torch.mean(SOS_temp)
-    print("result:", result)
-    '''
-    reg_sum = 0
-    p_sum = 0
-    for i in range(anchor.size(0)):
-        for j in range(anchor.size(0)):
-            if i != j:
-                reg_sum += torch.pow(torch.dist(anchor[i], anchor[j])-torch.dist(positive[i], positive[j]), 2)
-
-    result = torch.mean(torch.sqrt(reg_sum))
-    print("result:", result)
-    '''
-    return result
-
-
-def SOS_reg3(anchor, positive, k=50, eps=1e-8):
-    dist_matrix_a = distance_matrix_vector(anchor,anchor)+eps
-    dist_matrix_b = distance_matrix_vector(positive,positive)+eps
-    '''
-    dist = Normal(dist_matrix_b)
-    mask = torch.ones(dist_matrix_b.shape)
-    print("mask:", mask)
-    k_max_indices = torch.topk(dist_matrix_b, k=k, dim=1)
-    print("k_max_indices:", k_max_indices)
-    mask.scatter_(2, k_max_indices, 0.)
-    print("mask:", mask)
-    '''
-    k_max = percentile(dist_matrix_b, k)
-    mask = dist_matrix_b.lt(k_max)
-    #print("mask:", mask)
-    dist_matrix_a = dist_matrix_a*mask.int().float()
-    #print("dist_matrix_a:", dist_matrix_a)
-    dist_matrix_b = dist_matrix_b*mask.int().float()
-    #print("dist_matrix_b:", dist_matrix_b)
-
+    if KNN:
+        k_max = percentile(dist_matrix_b, k)
+        #print("k_max:", k_max)
+        mask = dist_matrix_b.lt(k_max)
+        dist_matrix_a = dist_matrix_a*mask.int().float()
+        dist_matrix_b = dist_matrix_b*mask.int().float()
     SOS_temp = torch.sqrt(torch.sum(torch.pow(dist_matrix_a-dist_matrix_b, 2)))
     return torch.mean(SOS_temp)
     
-def SOS_reg4(anchor, positive, k=10, eps=1e-8):
-    dist_matrix_a = distance_matrix_vector(anchor,anchor)+eps
-    dist_matrix_b = distance_matrix_vector(positive,positive)+eps
-    '''
-    dist = Normal(dist_matrix_b)
-    mask = torch.ones(dist_matrix_b.shape)
-    print("mask:", mask)
-    k_max_indices = torch.topk(dist_matrix_b, k=k, dim=1)
-    print("k_max_indices:", k_max_indices)
-    mask.scatter_(2, k_max_indices, 0.)
-    print("mask:", mask)
-    '''
-    '''
-    k_max = percentile(dist_matrix_b, k)
-    mask = dist_matrix_b.lt(k_max)
-    print("mask:", mask)
-    '''
-    mask = torch.ones((dist_matrix_b.shape), dtype=int, device=torch.device('cuda'))
-    dist_matrix_b[torch.isnan(dist_matrix_b)] = 0
-    k = int( float(dist_matrix_b.size(0)) * (float(k)/float(100)) )
-    top_k = torch.topk(dist_matrix_b, k)
-    mask[top_k.indices] = 0
-    #print("\n torch.max(dist_matrix_a)", torch.max(dist_matrix_a) )
-    dist_matrix_a = dist_matrix_a* mask.int().float()
-    #print("\n torch.max(dist_matrix_a)", torch.max(dist_matrix_a) )
-    #print("\n torch.max(dist_matrix_b)", torch.max(dist_matrix_b) )
-    dist_matrix_b = dist_matrix_b* mask.int().float()
-    #print("\n torch.max(dist_matrix_b)", torch.max(dist_matrix_b) )
-    SOS_temp = torch.sqrt(torch.sum(torch.pow(dist_matrix_a-dist_matrix_b, 2)))
 
-    return torch.mean(SOS_temp)
 
 
 def distance_vectors_pairwise(anchor, positive, negative = None):
@@ -301,40 +229,11 @@ def percentile(t, q):
     # indeed corresponds to k=1, not k=0! Use float(q) instead of q directly,
     # so that ``round()`` returns an integer, even if q is a np.float32.
     k = 1 + round(.01 * float(q) * (t.numel() - 1))
-    print("k:", k)
     result = t.view(-1).kthvalue(int(k)).values.item()
     return result
 
 
-def RSOS(anchor, positive, negative, margin=1.0, p=2, eps=1e-6, swap=False, k=50):
-    assert anchor.size() == positive.size(), "Input sizes between positive and negative must be equal."
-    assert anchor.size() == negative.size(), "Input sizes between anchor and negative must be equal."
-    assert positive.size() == negative.size(), "Input sizes between positive and negative must be equal."
-    assert anchor.dim() == 2, "Inputd must be a 2D matrix."
-    assert margin > 0.0, 'Margin should be positive value.'
-    d_p = pairwise_distance(positive, positive, p, eps)
-    d_a = pairwise_distance(anchor, anchor, p, eps)
-    print("d_a:", d_a)
-    print("d_p:", d_p)
-    dist = torch.pow((d_a - d_p), 2)
-    print("dist:", dist)
-    print("torch.max(dist):", torch.max(dist))
-    if(torch.max(dist) > 0):
-        print("if(torch.max(dist) > 0)")
-        exit(0)
 
-    #k_max = np.percentile(dist.detach().cpu().numpy(), k, interpolation="nearest")
-    k_max = percentile(dist, k)
-    print("k_max:", k_max)
-    k_nearest = dist[dist < k_max]
-    print("k_nearest:", k_nearest)
-    cumsum = torch.sum(k_nearest)
-    print("cumsum:", cumsum)
-    rsos = torch.sqrt(cumsum)
-    print("rsos:", rsos)
-    #rsos = torch.sqrt(torch.sum(torch.pow(dist_hinge, 2), 1))
-    #return rsos
-    return rsos
 
 
 '''

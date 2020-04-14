@@ -28,6 +28,7 @@ import torchvision.transforms as transforms
 from torch.autograd import Variable
 import torch.backends.cudnn as cudnn
 import os
+import shutil
 from tqdm import tqdm
 import numpy as np
 import random
@@ -35,7 +36,7 @@ import cv2
 import copy
 import PIL
 from EvalMetrics import ErrorRateAt95Recall
-from Losses import loss_HardNet, loss_random_sampling, loss_L2Net, global_orthogonal_regularization, SOS_reg, SOS_reg2, SOS_reg3, triplet_margin_loss, triplet_margin_loss_gor, RSOS
+from Losses import loss_HardNet, loss_random_sampling, loss_L2Net, global_orthogonal_regularization, SOS_reg, triplet_margin_loss, triplet_margin_loss_gor
 from W1BS import w1bs_extract_descs_and_save
 from Utils import L2Norm, cv2_scale, np_reshape
 from Utils import str2bool
@@ -116,13 +117,13 @@ parser.add_argument('--freq', type=float, default=10.0,
                     help='frequency for cyclic learning rate')
 parser.add_argument('--alpha', type=float, default=1.0, metavar='ALPHA',
                     help='gor parameter')
-parser.add_argument('--lr', type=float, default=10.0, metavar='LR',
+parser.add_argument('--lr', type=float, default=0.0001, metavar='LR',
                     help='learning rate (default: 10.0. Yes, ten is not typo)')
 parser.add_argument('--fliprot', type=str2bool, default=True,
                     help='turns on flip and 90deg rotation augmentation')
 parser.add_argument('--augmentation', type=str2bool, default=False,
                     help='turns on shift and small scale rotation augmentation')
-parser.add_argument('--lr-decay', default=1e-6, type=float, metavar='LRD',
+parser.add_argument('--lr-decay', default=0, type=float, metavar='LRD',
                     help='learning rate decay ratio (default: 1e-6')
 parser.add_argument('--wd', default=1e-4, type=float,
                     metavar='W', help='weight decay (default: 1e-4)')
@@ -137,7 +138,13 @@ parser.add_argument('--seed', type=int, default=0, metavar='S',
                     help='random seed (default: 0)')
 parser.add_argument('--log-interval', type=int, default=10, metavar='LI',
                     help='how many batches to wait before logging training status')
-parser.add_argument('--SOS', type=str2bool, default=False)
+parser.add_argument('--SOS', type=str2bool, default=True)
+parser.add_argument('--KNN',type=str2bool, default=True,
+                    help='Flag to use KNN or not use KNN in sosnet regularization term')
+parser.add_argument('--k', type=int, default=50, metavar='K',
+                    help='Percent to keep in KNN(K Nearest Neighbours) in sosnet regularization term')
+parser.add_argument('--eps', type=float, default=1e-8, metavar='EPS',
+                    help='Epsilon used in sosnet regularization function to prevent 0 and NAN')
 
 args = parser.parse_args()
 
@@ -178,6 +185,9 @@ torch.backends.cudnn.deterministic = True
 # create loggin directory
 if not os.path.exists(args.log_dir):
     os.makedirs(args.log_dir)
+else: #clear the old logs
+    shutil.rmtree(args.log_dir)
+    os.makedirs(args.log_dir)
 
 # set random seeds
 random.seed(args.seed)
@@ -187,12 +197,17 @@ np.random.seed(args.seed)
 # Create summary writer
 tr_writer = SummaryWriter(
     log_dir=os.path.join(args.log_dir, "train"))
-va_writer = SummaryWriter(
-    log_dir=os.path.join(args.log_dir, "valid"))
-
 # Create log directory if it does not exist
 if not os.path.exists(args.log_dir):
     os.makedirs(args.log_dir)
+
+va_writer = SummaryWriter(
+    log_dir=os.path.join(args.log_dir, "valid"))
+# Create log directory if it does not exist
+if not os.path.exists(args.log_dir):
+    os.makedirs(args.log_dir)
+
+
 
 
 
@@ -451,13 +466,9 @@ def train(train_loader, model, optimizer, epoch, logger, load_triplets  = False)
                             loss_type = args.loss)
 
         if args.SOS:
-            #reg_term = SOS_reg(out_a, out_p)
-            reg_term = SOS_reg2(out_a, out_p)
-            #reg_term = SOS_reg3(out_a, out_p)
-            #reg_term = SOS_reg4(out_a, out_p)
+            reg_term = SOS_reg(out_a, out_p, KNN=args.KNN, k=args.k, eps=args.eps)
             if not torch.isnan(reg_term) and reg_term > 0:
                 loss += args.alpha * reg_term
-                #loss += args.alpha * RSOS(out_a, out_p, out_n, margin=args.margin)
                 f=open("regularization.log","a")
                 np.savetxt(f, [epoch, reg_term], delimiter=',') 
                 f.close()
