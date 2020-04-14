@@ -136,7 +136,7 @@ parser.add_argument('--gpu-id', default='0', type=str,
                     help='id(s) for CUDA_VISIBLE_DEVICES')
 parser.add_argument('--seed', type=int, default=0, metavar='S',
                     help='random seed (default: 0)')
-parser.add_argument('--log-interval', type=int, default=10, metavar='LI',
+parser.add_argument('--log-interval', type=int, default=1000, metavar='LI',
                     help='how many batches to wait before logging training status')
 parser.add_argument('--SOS', type=str2bool, default=True)
 parser.add_argument('--KNN',type=str2bool, default=True,
@@ -497,8 +497,8 @@ def train(train_loader, model, optimizer, epoch, logger, load_triplets  = False)
                     epoch, batch_idx * len(data_a), len(train_loader.dataset),
                            100. * batch_idx / len(train_loader),
                     loss.item()))
-
             tr_writer.add_scalar("loss", loss, global_step=batch_idx)
+
 
     if (args.enable_logging):
         logger.log_value('loss', loss.item()).step()
