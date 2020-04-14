@@ -194,6 +194,13 @@ random.seed(args.seed)
 torch.manual_seed(args.seed)
 np.random.seed(args.seed)
 
+fpr95_log = "FPR95.log"
+reg_log = "regularization.log"
+if os.path.exists(fpr95_log):
+    os.remove(fpr95_log)
+if os.path.exists(reg_log):
+    os.remove(reg_log)
+
 # Create summary writer
 tr_writer = SummaryWriter(
     log_dir=os.path.join(args.log_dir, "train"))
@@ -469,7 +476,7 @@ def train(train_loader, model, optimizer, epoch, logger, load_triplets  = False)
             reg_term = SOS_reg(out_a, out_p, KNN=args.KNN, k=args.k, eps=args.eps)
             if not torch.isnan(reg_term) and reg_term > 0:
                 loss += args.alpha * reg_term
-                f=open("regularization.log","a")
+                f=open(reg_log,"a+")
                 np.savetxt(f, [epoch, reg_term], delimiter=',') 
                 f.close()
 
@@ -538,7 +545,7 @@ def test(test_loader, model, epoch, logger, logger_test_name):
     print('\33[91mTest set: Accuracy(FPR95): {:.8f}\n\33[0m'.format(fpr95))
     #va_writer.add_scalar("fpr95", fpr95, global_step=epoch)
     tr_writer.add_scalar("fpr95", fpr95, global_step=epoch)
-    f=open("FPR95.log","a")
+    f=open(fpr95_log,"a+")
     np.savetxt(f, [epoch, fpr95], delimiter=',') 
     f.close()
 
